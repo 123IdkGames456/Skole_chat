@@ -170,14 +170,17 @@ const body=document.createElement("div");body.className="text";body.textContent=
 });
 count.textContent=parsed.length+" recent messages";scroll()
 }
-async function poll(){
+async function poll(connectingToBot=false){
 if(!active||importedPreview)return false;
 try{
  const response=await fetch(api+"/api/messages?limit=50",{cache:"no-store"});
  if(!response.ok)throw new Error((await response.text())||"HTTP "+response.status);
  const data=await response.json();
  const rows=Array.isArray(data)?data:(Array.isArray(data.messages)?data.messages:Array.isArray(data.data)?data.data:[]);
- render(rows);initialPollDone=true;setConnection(true);say("Live · Updated just now.");return true;
+ render(rows);initialPollDone=true;
+ if(connectingToBot){connection.textContent="Messages received · Connecting to bot";connection.classList.add("on")}
+ else setConnection(true);
+ say("Live · Updated just now.");return true;
 }catch(error){setConnection(false);say("Could not load messages: "+error.message,true);return false}
 }
 async function sendMessage(){
@@ -195,16 +198,19 @@ const display=nameInput.value.trim();
 if(!display){say("Choose a display name first.",true);nameInput.focus();return}
 if(timer){clearInterval(timer);clearTimeout(timer);timer=null}
 active=false;sendButton.disabled=true;textInput.disabled=true;connectButton.disabled=true;reconnectButton.disabled=true;
+connection.textContent="Getting messages…";connection.classList.remove("on");
 localStorage.setItem("ikirumiMessagesName",display);
 try{
- let healthChecked=false;
+ active=true;
+ const loaded=await poll(true);
+ if(!loaded)throw new Error("Could not get messages from the chat server. Retrying before checking the bot.");
+ connection.textContent="Messages received · Connecting to bot";
  try{
   const response=await fetch(api+"/api/health",{cache:"no-store"});
-  if(response.ok){const info=await response.json();healthChecked=true;if(info.configured===false)throw new Error("No Discord channel assigned. Run /school chat in Discord.");}
+  if(response.ok){const info=await response.json();if(info.configured===false)throw new Error("No Discord channel assigned. Run /school chat in Discord.");}
  }catch(error){if(String(error.message||"").includes("No Discord channel assigned"))throw error;}
- active=true;textInput.disabled=false;sendButton.disabled=false;chooseImage.disabled=false;
- const loaded=await poll();
- if(!loaded)throw new Error("Chat server did not return messages. Check that the bot/server is online.");
+ setConnection(true);
+ textInput.disabled=false;sendButton.disabled=false;chooseImage.disabled=false;
  timer=setInterval(poll,1000);
 }
 catch(error){active=false;textInput.disabled=true;sendButton.disabled=true;chooseImage.disabled=true;setConnection(false);say("Connection failed: "+error.message+" — retrying automatically in 5 seconds.",true);timer=setTimeout(()=>{if(!active)start()},5000)}
