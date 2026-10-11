@@ -215,7 +215,7 @@ $("choosePfp").addEventListener("click",()=>pfpFile.click());pfpFile.addEventLis
 
 const attachmentMenu=document.createElement("div");
 attachmentMenu.className="attachmentMenu";
-attachmentMenu.innerHTML='<button type="button" id="deviceImageOption">🖼️ Choose image from device</button><button type="button" id="libraryImageOption">🗂️ Image Library</button>';
+attachmentMenu.innerHTML='<button type="button" id="deviceImageOption">🖼️ Choose image from device</button><button type="button" id="libraryImageOption">🗂️ Chat App Image Library</button><button type="button" id="fnajLibraryOption">🎮 FNAJ Image Library</button>';
 document.body.appendChild(attachmentMenu);
 const imageLibraryModal=document.createElement("div");
 imageLibraryModal.className="imageLibraryModal hidden";
@@ -223,28 +223,23 @@ imageLibraryModal.innerHTML='<div class="imageLibraryCard"><div class="imageLibr
 document.body.appendChild(imageLibraryModal);
 const libraryGrid=imageLibraryModal.querySelector(".imageLibraryGrid"),libraryStatus=imageLibraryModal.querySelector(".imageLibraryStatus"),librarySend=imageLibraryModal.querySelector(".imageLibrarySend");
 let selectedLibraryImage=null;
+const fnajImageLibraryModal=document.createElement("div");
+fnajImageLibraryModal.className="imageLibraryModal hidden";
+fnajImageLibraryModal.innerHTML='<div class="imageLibraryCard"><div class="imageLibraryHead"><div><h2>FNAJ Image Library</h2><div class="imageLibrarySub">Images directly from the FNAJ repository · Images folder.</div></div><button type="button" class="imageLibraryClose">×</button></div><div class="imageLibraryGrid"><div class="imageLibraryEmpty">Loading FNAJ images…</div></div><div class="imageLibraryFoot"><span class="imageLibraryStatus">Loading FNAJ images…</span><button type="button" class="imageLibraryRefresh">Refresh</button><button type="button" class="imageLibrarySend" disabled>Use image</button></div></div>';
+document.body.appendChild(fnajImageLibraryModal);
+const fnajLibraryGrid=fnajImageLibraryModal.querySelector(".imageLibraryGrid"),fnajLibraryStatus=fnajImageLibraryModal.querySelector(".imageLibraryStatus"),fnajLibrarySend=fnajImageLibraryModal.querySelector(".imageLibrarySend");
+let selectedFnajImage=null;
 function closeAttachmentMenu(){attachmentMenu.style.display="none"}
 async function loadChatApp2ImageLibrary(){
- libraryGrid.innerHTML='<div class="imageLibraryEmpty">Loading images…</div>';libraryStatus.textContent="Loading both image libraries…";librarySend.disabled=true;selectedLibraryImage=null;
+ libraryGrid.innerHTML='<div class="imageLibraryEmpty">Loading Chat App images…</div>';libraryStatus.textContent="Loading Chat App image library…";librarySend.disabled=true;selectedLibraryImage=null;
  try{
-  const sources=[
-   {label:"Chat App images",url:"https://api.github.com/repos/123IdkGames456/Skole_chat/contents/image-library?ref=main",base:"https://raw.githubusercontent.com/123IdkGames456/Skole_chat/main/image-library/"},
-   {label:"FNAJ images",url:"https://api.github.com/repos/123IdkGames456/FNAJ/contents/Images?ref=main",base:"https://raw.githubusercontent.com/123IdkGames456/FNAJ/main/Images/"}
-  ];
-  const images=[];
-  const fnajKnownFiles=["1102960-crop0_225_1314_554-qpcmmsx4-v4.webp","1102960-crop0_96_1136_735-38kj8hy2-v4.webp","1791044315752.jpg","37df717e-2508-4332-9979-1244d0f087b2.png","Bilde_2026-09-28_120044122.png","Bilde_2026-10-05_213933909.png","FNAJ_20261003_191553_0000.png","Gemini_Generated_Image_.jpg","Gemini_Generated_Image_avwtjuavwtjuavwt.jpg","Pasted image (2).png","Skjermbilde 2026-08-02 223535.png","Skjermbilde 2026-09-27 213644.png","Skjermbilde 2026-09-27 213730.png","Skjermbilde 2026-09-27 214933.png","Skjermbilde 2026-09-30 220945.png","Skjermbilde 2026-10-01 225935.png","Skjermbilde 2026-10-01 225955.png","Skjermbilde 2026-10-01 233009.png","Skjermbilde 2026-10-05 215440.png","Skjermbilde 2026-10-06 184656.png","Skjermbilde 2026-10-11 211459.png","Skjermbilde 2026-10-11 211553.png","Skjermbilde 2026-10-11 211623.png"];
-  const results=await Promise.allSettled(sources.map(async source=>{
-   const response=await fetch(source.url,{cache:"no-store"});
-   if(!response.ok)throw new Error(source.label+" unavailable");
-   const files=await response.json();
-   if(!Array.isArray(files))throw new Error(source.label+" returned an invalid image list");
-   return files.filter(file=>file.type==="file"&&/[.](png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(file.name)).map(file=>({name:file.name,label:source.label+" · "+file.name,url:file.download_url||source.base+encodeURIComponent(file.name),source:source.label}));
-  }));
-  results.forEach((result,index)=>{if(result.status==="fulfilled")images.push(...result.value);});
-  const knownNames=new Set(images.filter(file=>file.source==="FNAJ images").map(file=>file.name));
-  fnajKnownFiles.forEach(name=>{if(!knownNames.has(name))images.push({name,label:"FNAJ images · "+name,url:"https://raw.githubusercontent.com/123IdkGames456/FNAJ/main/Images/"+encodeURIComponent(name).replace(/%2F/g,"/"),source:"FNAJ images"});});
-  images.sort((a,b)=>a.source.localeCompare(b.source)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:"base"}));
-  if(!images.length){libraryGrid.innerHTML='<div class="imageLibraryEmpty">Could not find images in either GitHub image folder.<br>Check your connection and try Refresh.</div>';libraryStatus.textContent="No images available";return}
+  const response=await fetch("https://api.github.com/repos/123IdkGames456/Skole_chat/contents/image-library?ref=main",{cache:"no-store"});
+  if(!response.ok)throw new Error("Chat App image library unavailable");
+  const files=await response.json();
+  if(!Array.isArray(files))throw new Error("Invalid image list");
+  const images=files.filter(file=>file.type==="file"&&/[.](png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(file.name)).map(file=>({name:file.name,label:"Chat App images · "+file.name,url:file.download_url||"https://raw.githubusercontent.com/123IdkGames456/Skole_chat/main/image-library/"+encodeURIComponent(file.name),source:"Chat App images"}));
+  if(!images.length){libraryGrid.innerHTML='<div class="imageLibraryEmpty">No images found in the Chat App library.</div>';libraryStatus.textContent="No images available";return}
+  images.sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:"base"}));
   libraryGrid.replaceChildren();
   for(const file of images){
    const item=document.createElement("button");item.type="button";item.className="imageLibraryItem";item.setAttribute("aria-label",file.label);
@@ -254,9 +249,8 @@ async function loadChatApp2ImageLibrary(){
    image.addEventListener("error",()=>{image.style.opacity=".25";image.alt="Image could not load"});
    libraryGrid.appendChild(item);
   }
-  const loaded=results.filter(result=>result.status==="fulfilled").length;
-  libraryStatus.textContent=images.length+" images · "+(loaded===2?"both libraries loaded":loaded===1?"one library loaded":"library load issue");
- }catch(error){libraryGrid.innerHTML='<div class="imageLibraryEmpty">Could not load the Image Library.<br>Check your connection and try Refresh.</div>';libraryStatus.textContent="Library unavailable"}
+  libraryStatus.textContent=images.length+" Chat App images";
+ }catch(error){libraryGrid.innerHTML='<div class="imageLibraryEmpty">Could not load Chat App images.<br>Check your connection and try Refresh.</div>';libraryStatus.textContent="Library unavailable"}
 }
 function openChatApp2ImageLibrary(){closeAttachmentMenu();imageLibraryModal.classList.remove("hidden");loadChatApp2ImageLibrary()}
 chooseImage.addEventListener("click",event=>{
@@ -270,6 +264,47 @@ chooseImage.addEventListener("click",event=>{
 attachmentMenu.addEventListener("click",event=>event.stopPropagation());
 $("deviceImageOption").addEventListener("click",()=>{closeAttachmentMenu();imageFile.accept="image/*";imageFile.click()});
 $("libraryImageOption").addEventListener("click",openChatApp2ImageLibrary);
+async function loadFnajImageLibrary(){
+ fnajLibraryGrid.innerHTML='<div class="imageLibraryEmpty">Loading FNAJ images…</div>';fnajLibraryStatus.textContent="Loading FNAJ repository…";fnajLibrarySend.disabled=true;selectedFnajImage=null;
+ const knownFiles=["1102960-crop0_225_1314_554-qpcmmsx4-v4.webp","1102960-crop0_96_1136_735-38kj8hy2-v4.webp","1791044315752.jpg","37df717e-2508-4332-9979-1244d0f087b2.png","Bilde_2026-09-28_120044122.png","Bilde_2026-10-05_213933909.png","FNAJ_20261003_191553_0000.png","Gemini_Generated_Image_.jpg","Gemini_Generated_Image_avwtjuavwtjuavwt.jpg","Pasted image (2).png","Skjermbilde 2026-08-02 223535.png","Skjermbilde 2026-09-27 213644.png","Skjermbilde 2026-09-27 213730.png","Skjermbilde 2026-09-27 214933.png","Skjermbilde 2026-09-30 220945.png","Skjermbilde 2026-10-01 225935.png","Skjermbilde 2026-10-01 225955.png","Skjermbilde 2026-10-01 233009.png","Skjermbilde 2026-10-05 215440.png","Skjermbilde 2026-10-06 184656.png","Skjermbilde 2026-10-11 211459.png","Skjermbilde 2026-10-11 211553.png","Skjermbilde 2026-10-11 211623.png"];
+ let files=[];
+ try{
+  const response=await fetch("https://api.github.com/repos/123IdkGames456/FNAJ/contents/Images?ref=main",{cache:"no-store"});
+  if(!response.ok)throw new Error("GitHub API unavailable");
+  const data=await response.json();
+  if(!Array.isArray(data))throw new Error("Invalid FNAJ image list");
+  files=data.filter(file=>file.type==="file"&&/[.](png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(file.name)).map(file=>({name:file.name,url:file.download_url||"https://raw.githubusercontent.com/123IdkGames456/FNAJ/main/Images/"+encodeURIComponent(file.name)}));
+ }catch(error){files=knownFiles.map(name=>({name,url:"https://raw.githubusercontent.com/123IdkGames456/FNAJ/main/Images/"+encodeURIComponent(name)}))}
+ const unique=new Map(files.map(file=>[file.name,file]));files=[...unique.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:"base"}));
+ if(!files.length){fnajLibraryGrid.innerHTML='<div class="imageLibraryEmpty">No images found in FNAJ/Images.</div>';fnajLibraryStatus.textContent="No FNAJ images found";return}
+ fnajLibraryGrid.replaceChildren();
+ for(const file of files){
+  const entry={...file,label:"FNAJ · "+file.name,source:"FNAJ images"};
+  const item=document.createElement("button");item.type="button";item.className="imageLibraryItem";item.setAttribute("aria-label",entry.label);
+  const image=document.createElement("img");image.src=entry.url;image.alt=entry.label;image.loading="lazy";
+  const label=document.createElement("div");label.className="imageLibraryName";label.textContent=entry.label;item.append(image,label);
+  item.addEventListener("click",()=>{fnajLibraryGrid.querySelectorAll(".imageLibraryItem.selected").forEach(element=>element.classList.remove("selected"));item.classList.add("selected");selectedFnajImage=entry;fnajLibrarySend.disabled=false;fnajLibraryStatus.textContent=entry.label});
+  image.addEventListener("error",()=>{image.style.opacity=".25";image.alt="Image could not load"});
+  fnajLibraryGrid.appendChild(item);
+ }
+ fnajLibraryStatus.textContent=files.length+" FNAJ images";
+}
+function openFnajImageLibrary(){closeAttachmentMenu();fnajImageLibraryModal.classList.remove("hidden");loadFnajImageLibrary()}
+$("fnajLibraryOption").addEventListener("click",openFnajImageLibrary);
+fnajImageLibraryModal.querySelector(".imageLibraryClose").addEventListener("click",()=>fnajImageLibraryModal.classList.add("hidden"));
+fnajImageLibraryModal.querySelector(".imageLibraryRefresh").addEventListener("click",loadFnajImageLibrary);
+fnajLibrarySend.addEventListener("click",async()=>{
+ if(!selectedFnajImage)return;
+ fnajLibrarySend.disabled=true;fnajLibraryStatus.textContent="Preparing image…";
+ try{
+  const response=await fetch(selectedFnajImage.url,{cache:"force-cache"});if(!response.ok)throw new Error("Image download failed");
+  const blob=await response.blob();const file=new File([blob],selectedFnajImage.name,{type:blob.type||"image/*"});
+  pendingImage=await compressImage(file,250);imagePreview.src=pendingImage;imagePreview.classList.add("show");
+  fnajImageLibraryModal.classList.add("hidden");say("FNAJ image ready · press Send to post it.",false);
+ }catch(error){fnajLibraryStatus.textContent="Could not load image";say("Could not load FNAJ image: "+error.message,true)}
+ finally{fnajLibrarySend.disabled=!selectedFnajImage}
+});
+fnajImageLibraryModal.addEventListener("click",event=>{if(event.target===fnajImageLibraryModal)fnajImageLibraryModal.classList.add("hidden")});
 imageFile.addEventListener("change",async()=>{const file=imageFile.files&&imageFile.files[0];if(!file)return;try{pendingImage=await compressImage(file,250);imagePreview.src=pendingImage;imagePreview.classList.add("show");say("Image ready · resized to max 250px.",false)}catch(error){say(error.message,true)}finally{imageFile.value=""}});
 imageLibraryModal.querySelector(".imageLibraryClose").addEventListener("click",()=>imageLibraryModal.classList.add("hidden"));
 imageLibraryModal.querySelector(".imageLibraryRefresh").addEventListener("click",loadChatApp2ImageLibrary);
