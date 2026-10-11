@@ -160,7 +160,7 @@ const body=document.createElement("div");body.className="text";body.textContent=
    const response=await fetch(api+"/api/messages/"+encodeURIComponent(String(m.id)),{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:String(m.id),name:nameInput.value.trim()})});
    if(!response.ok)throw new Error((await response.text())||("HTTP "+response.status));
    menu.classList.add("hidden");say("Message deleted.");lastIds="";await poll();
-  }catch(error){deleteButton.disabled=false;deleteButton.textContent="Delete message";say("Could not delete message. The chat server may need a delete-message endpoint. "+error.message,true)}
+  }catch(error){deleteButton.disabled=false;deleteButton.textContent="Delete message";say("Could not delete message: "+error.message,true)}
  });
  menu.appendChild(deleteButton);menuWrap.append(menuButton,menu);
  menuButton.addEventListener("click",event=>{event.stopPropagation();document.querySelectorAll(".msgContextMenu").forEach(other=>{if(other!==menu)other.classList.add("hidden")});menu.classList.toggle("hidden")});
