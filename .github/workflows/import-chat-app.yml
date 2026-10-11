@@ -2,8 +2,8 @@ name: Import Chat App 2 files
 
 on:
   push:
-    paths:
-      - ".github/workflows/import-chat-app.yml"
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
