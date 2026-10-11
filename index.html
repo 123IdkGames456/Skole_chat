@@ -171,9 +171,14 @@ const body=document.createElement("div");body.className="text";body.textContent=
 count.textContent=parsed.length+" recent messages";scroll()
 }
 async function poll(){
-if(!active||importedPreview)return;
-try{const response=await fetch(api+"/api/messages?limit=50",{cache:"no-store"});if(!response.ok)throw new Error((await response.text())||"HTTP "+response.status);const data=await response.json();render(data.messages||[]);initialPollDone=true;setConnection(true);say("Live · Updated just now.")}
-catch(error){setConnection(false);say("Could not load messages: "+error.message,true)}
+if(!active||importedPreview)return false;
+try{
+ const response=await fetch(api+"/api/messages?limit=50",{cache:"no-store"});
+ if(!response.ok)throw new Error((await response.text())||"HTTP "+response.status);
+ const data=await response.json();
+ const rows=Array.isArray(data)?data:(Array.isArray(data.messages)?data.messages:Array.isArray(data.data)?data.data:[]);
+ render(rows);initialPollDone=true;setConnection(true);say("Live · Updated just now.");return true;
+}catch(error){setConnection(false);say("Could not load messages: "+error.message,true);return false}
 }
 async function sendMessage(){
 const display=nameInput.value.trim(),content=textInput.value.trim();
@@ -191,8 +196,18 @@ if(!display){say("Choose a display name first.",true);nameInput.focus();return}
 if(timer){clearInterval(timer);clearTimeout(timer);timer=null}
 active=false;sendButton.disabled=true;textInput.disabled=true;connectButton.disabled=true;reconnectButton.disabled=true;
 localStorage.setItem("ikirumiMessagesName",display);
-try{const response=await fetch(api+"/api/health",{cache:"no-store"});if(!response.ok)throw new Error((await response.text())||"HTTP "+response.status);const info=await response.json();if(!info.configured)throw new Error("No Discord channel assigned. Run /school chat in Discord.");active=true;textInput.disabled=false;sendButton.disabled=false;chooseImage.disabled=false;setConnection(true);await poll();timer=setInterval(poll,1000)}
-catch(error){setConnection(false);say("Connection failed: "+error.message+" — retrying automatically in 5 seconds.",true);timer=setTimeout(()=>{if(!active)start()},5000)}
+try{
+ let healthChecked=false;
+ try{
+  const response=await fetch(api+"/api/health",{cache:"no-store"});
+  if(response.ok){const info=await response.json();healthChecked=true;if(info.configured===false)throw new Error("No Discord channel assigned. Run /school chat in Discord.");}
+ }catch(error){if(String(error.message||"").includes("No Discord channel assigned"))throw error;}
+ active=true;textInput.disabled=false;sendButton.disabled=false;chooseImage.disabled=false;
+ const loaded=await poll();
+ if(!loaded)throw new Error("Chat server did not return messages. Check that the bot/server is online.");
+ timer=setInterval(poll,1000);
+}
+catch(error){active=false;textInput.disabled=true;sendButton.disabled=true;chooseImage.disabled=true;setConnection(false);say("Connection failed: "+error.message+" — retrying automatically in 5 seconds.",true);timer=setTimeout(()=>{if(!active)start()},5000)}
 finally{connectButton.disabled=false;reconnectButton.disabled=false}
 }
 connectButton.addEventListener("click",()=>{localStorage.setItem("ikirumiMessagesName",nameInput.value.trim());saveProfile();start()});reconnectButton.addEventListener("click",start);
@@ -217,13 +232,17 @@ async function loadChatApp2ImageLibrary(){
    {label:"FNAJ images",url:"https://api.github.com/repos/123IdkGames456/FNAJ/contents/Images?ref=main",base:"https://raw.githubusercontent.com/123IdkGames456/FNAJ/main/Images/"}
   ];
   const images=[];
+  const fnajKnownFiles=["1102960-crop0_225_1314_554-qpcmmsx4-v4.webp","1102960-crop0_96_1136_735-38kj8hy2-v4.webp","1791044315752.jpg","37df717e-2508-4332-9979-1244d0f087b2.png","Bilde_2026-09-28_120044122.png","Bilde_2026-10-05_213933909.png","FNAJ_20261003_191553_0000.png","Gemini_Generated_Image_.jpg","Gemini_Generated_Image_avwtjuavwtjuavwt.jpg","Pasted image (2).png","Skjermbilde 2026-08-02 223535.png","Skjermbilde 2026-09-27 213644.png","Skjermbilde 2026-09-27 213730.png","Skjermbilde 2026-09-27 214933.png","Skjermbilde 2026-09-30 220945.png","Skjermbilde 2026-10-01 225935.png","Skjermbilde 2026-10-01 225955.png","Skjermbilde 2026-10-01 233009.png","Skjermbilde 2026-10-05 215440.png","Skjermbilde 2026-10-06 184656.png","Skjermbilde 2026-10-11 211459.png","Skjermbilde 2026-10-11 211553.png","Skjermbilde 2026-10-11 211623.png"];
   const results=await Promise.allSettled(sources.map(async source=>{
    const response=await fetch(source.url,{cache:"no-store"});
    if(!response.ok)throw new Error(source.label+" unavailable");
    const files=await response.json();
+   if(!Array.isArray(files))throw new Error(source.label+" returned an invalid image list");
    return files.filter(file=>file.type==="file"&&/[.](png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(file.name)).map(file=>({name:file.name,label:source.label+" · "+file.name,url:file.download_url||source.base+encodeURIComponent(file.name),source:source.label}));
   }));
-  results.forEach(result=>{if(result.status==="fulfilled")images.push(...result.value)});
+  results.forEach((result,index)=>{if(result.status==="fulfilled")images.push(...result.value);});
+  const knownNames=new Set(images.filter(file=>file.source==="FNAJ images").map(file=>file.name));
+  fnajKnownFiles.forEach(name=>{if(!knownNames.has(name))images.push({name,label:"FNAJ images · "+name,url:"https://raw.githubusercontent.com/123IdkGames456/FNAJ/main/Images/"+encodeURIComponent(name).replace(/%2F/g,"/"),source:"FNAJ images"});});
   images.sort((a,b)=>a.source.localeCompare(b.source)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:"base"}));
   if(!images.length){libraryGrid.innerHTML='<div class="imageLibraryEmpty">Could not find images in either GitHub image folder.<br>Check your connection and try Refresh.</div>';libraryStatus.textContent="No images available";return}
   libraryGrid.replaceChildren();
