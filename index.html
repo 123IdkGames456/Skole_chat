@@ -143,7 +143,7 @@ if(added.length){added.forEach(m=>{if(m.author.toLowerCase()!==nameInput.value.t
 initialPollDone=true;
 if(!parsed.length){const empty=document.createElement("div");empty.className="empty";const inner=document.createElement("div"),ico=document.createElement("div"),label=document.createElement("div");ico.className="emptyIcon";ico.textContent="✦";label.className="emptyText";label.textContent="No messages yet. Start the conversation!";inner.append(ico,label);empty.append(inner);messages.appendChild(empty);count.textContent="0 messages";return}
 parsed.forEach(m=>{
-const mine=m.author.toLowerCase()===nameInput.value.trim().toLowerCase();
+const mine=(m.deviceId&&m.deviceId===deviceId)||m.author.toLowerCase()===nameInput.value.trim().toLowerCase();
 const item=document.createElement("article");item.className="msg"+(mine?" mine":"");
 const avatar=document.createElement("div");avatar.className="avatar";const avatarFile=(m.attachments||[]).find(file=>file.filename==="chat-pfp.jpg");if(m.avatarBase64||avatarFile){const avatarImage=document.createElement("img");avatarImage.src=m.avatarBase64||avatarFile.url;avatarImage.alt="";avatarImage.decoding="async";avatar.appendChild(avatarImage)}else avatar.textContent=(m.author.trim().charAt(0)||"G").toUpperCase();
 const wrap=document.createElement("div");wrap.className="bubbleWrap";
@@ -157,7 +157,7 @@ const body=document.createElement("div");body.className="text";body.textContent=
  deleteButton.addEventListener("click",async()=>{
   deleteButton.disabled=true;deleteButton.textContent="Deleting…";
   try{
-   const response=await fetch(api+"/api/messages/"+encodeURIComponent(String(m.id)),{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:String(m.id),name:nameInput.value.trim()})});
+   const response=await fetch(api+"/api/messages/"+encodeURIComponent(String(m.id)),{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:String(m.id),name:nameInput.value.trim(),deviceId:deviceId})});
    if(!response.ok)throw new Error((await response.text())||("HTTP "+response.status));
    menu.classList.add("hidden");say("Message deleted.");lastIds="";await poll();
   }catch(error){deleteButton.disabled=false;deleteButton.textContent="Delete message";say("Could not delete message: "+error.message,true)}
